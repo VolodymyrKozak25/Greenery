@@ -22,7 +22,7 @@
    python -m venv venv
    source venv/bin/activate  # для Linux/macOS
    .\venv\Scripts\activate   # для Windows
-3. Встановіть залежності:
+3. Встановіть необхідні залежності:
    pip install -r requirements.txt
 
 ## Використання
