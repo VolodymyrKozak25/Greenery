@@ -1,3 +1,6 @@
+LINESTRING_WIDTH = 1
+POINT_AREA = 1
+
 TAG_GROUPS = ('leisure', 'natural', 'landuse')
 
 TAGS = {
