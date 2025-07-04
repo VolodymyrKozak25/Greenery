@@ -2,6 +2,8 @@ from typing import Tuple
 from shapely.geometry import Point
 import geopandas as gpd
 
+from static.tags import LINESTRING_WIDTH, POINT_AREA
+
 
 def circle_area(center: Tuple[float, float], radius: int) -> gpd.GeoSeries:
     """
@@ -32,7 +34,24 @@ def get_area(obj: gpd.GeoSeries) -> int:
                 for which the area is to be calculated.
     :return: The total area of the geometries in the GeoSeries.
     """
-    area = obj.set_crs("EPSG:4326").to_crs(3043).area
+    obj = obj.set_crs("EPSG:4326").to_crs(3043)
+    if obj[0].geom_type == 'GeometryCollection':
+        area = 0
+        for item in obj[0].geoms:
+            if item.area:
+                area += item.area
+            elif "LineString" in item.geom_type:
+                area += item.length * LINESTRING_WIDTH
+            elif item.geom_type == "Point":
+                area += POINT_AREA 
+            elif item.geom_type == "MultiPoint":
+                area += len(item.geoms) * POINT_AREA
+        return round(area)
+    if "LineString" in obj[0].geom_type:
+        return round(obj[0].length * LINESTRING_WIDTH)
+    if "Point" in obj[0].geom_type:
+        return round(len(obj[0].geoms) * POINT_AREA)
+    area = obj.area
     try:
         return round(area.values[0])
     except ValueError:

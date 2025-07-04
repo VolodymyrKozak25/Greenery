@@ -121,7 +121,6 @@ def get_details(territory: Union[gpd.GeoSeries, gpd.GeoDataFrame],
             temp_tags = {group: tag}
             try:
                 objects = ox.features_from_polygon(territory.item(), temp_tags)
-                print(objects)
                 intersection = objects.unary_union.intersection(territory)
                 details[tag] = get_area(intersection)
             except:
