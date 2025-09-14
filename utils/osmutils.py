@@ -7,13 +7,15 @@ from static.tags import TAGS
 from .gpdutils import get_area
 
 
-def get_zoom(radius: int) -> int:
+def get_zoom(radius: int | None) -> int:
     """
     Calculates start zoom for the folium map.
 
-    :param radius: Radius (in meters).
+    :param radius: Radius (in meters) or None.
     :return: Start zoom.
     """
+    if radius is None:
+        return 12
     if radius <= 250:
         return 16
     if radius <= 500:
@@ -25,17 +27,20 @@ def get_zoom(radius: int) -> int:
     return 10
     
     
-def get_tagname(tag: str) -> str:
+def get_tagname(tag: Tuple[str, str]) -> str:
     """
-    
+    Find and return the name corresponding to a given tag.
+
+    :param tag: The (category, tag)-tuple to search for in TAGS dictionary.
+    :return: The name associated with the tag.
     """
     for name, tags in TAGS.items():
-        if tag == tags[1]:
+        if tag == tags:
             return name
 
 
 def create_map(location: Tuple[float, float], 
-               address: str, radius: int) -> folium.Map:
+               address: str, radius: int | None) -> folium.Map:
     """
     Creates an interactive map.
 
@@ -46,10 +51,11 @@ def create_map(location: Tuple[float, float],
     """
     zoom = get_zoom(radius)
     map_obj = folium.Map(location=location, zoom_start=zoom)
-    folium.Marker(location=location, 
-                  icon=folium.Icon(color='red'),
-                  popup=address, 
-                  tooltip=address).add_to(map_obj)
+    if radius is not None:
+        folium.Marker(location=location, 
+                      icon=folium.Icon(color='red'),
+                      popup=address, 
+                      tooltip=address).add_to(map_obj)
     return map_obj
     
     
@@ -105,7 +111,7 @@ def get_greenery(territory: Union[gpd.GeoSeries, gpd.GeoDataFrame],
     
     
 def get_details(territory: Union[gpd.GeoSeries, gpd.GeoDataFrame], 
-                 tags: Dict[str, List[str]]) -> gpd.GeoDataFrame:
+                 tags: Dict[str, List[str]]) -> Dict[Tuple[str, str], int]:
     """
     Retrieve greenery features within a specified territory using OSM data.
 
@@ -113,7 +119,9 @@ def get_details(territory: Union[gpd.GeoSeries, gpd.GeoDataFrame],
                       polygon(s). Must have a valid CRS and contain a single
                       or multiple polygons.
     :param tags: Dictionary of OSM tags to filter greenery features.
-    :return: A GeoDataFrame of greenery features in the input territory.
+    :return: A dictionary where keys are tuples of OSM category and tags
+             corresponding to the features and values are the total area
+             (in square meters) of the features within the territory. 
     """
     details = {}
     for group, taglist in tags.items():
@@ -122,10 +130,22 @@ def get_details(territory: Union[gpd.GeoSeries, gpd.GeoDataFrame],
             try:
                 objects = ox.features_from_polygon(territory.item(), temp_tags)
                 intersection = objects.unary_union.intersection(territory)
-                details[tag] = get_area(intersection)
+                details[(group, tag)] = get_area(intersection)
             except:
                 pass
     return details
+    
+    
+def district_area(district_name: str) -> gpd.GeoSeries:
+    """
+    Returns a GeoDataFrame-object corresponding to administrative district of Lviv.
+    
+    :param district_name: Cyrrilic name of administrative district of Lviv (Ukraine).
+    :return: A GeoSeries which represents the administrative district
+    """
+    gdf = ox.features_from_place("Львів, Україна", tags={"admin_level": "10"})
+    gdf = gdf[gdf['name'] == district_name]
+    return gpd.GeoSeries([gdf.unary_union])
     
 
 
