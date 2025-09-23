@@ -7,6 +7,7 @@ from utils import osmutils
 from utils.geoutils import get_location
 from utils.gpdutils import circle_area, get_area
 from static.tags import TAGS, TAG_GROUPS
+from static.addresses import DISTRICTS
 
 
 st.session_state.setdefault("map_obj", None)
@@ -25,12 +26,19 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-address = st.sidebar.text_input("Адреса")
-radius = st.sidebar.number_input("Радіус охоплення (у метрах)", 
-                                 min_value=0, 
-                                 value=500, 
-                                 step=100, 
-                                 format="%d")
+tab = st.sidebar.radio("Оберіть вид досліджуваної території:", 
+                      ["Кругова область", "Адміністративний район м. Львів"])
+
+if tab == "Кругова область":
+    address = st.sidebar.text_input("Адреса")
+    radius = st.sidebar.number_input("Радіус охоплення (у метрах)", 
+        	                     min_value=0, 
+        	                     value=500, 
+        	                     step=100, 
+        	                     format="%d")
+else:
+    address = st.sidebar.selectbox("Оберіть район:", DISTRICTS, index=0)
+    radius = None
                                  
 for tag in st.session_state.tags:
     st.session_state.tags[tag] = st.sidebar.checkbox(
@@ -40,17 +48,24 @@ for tag in st.session_state.tags:
 if st.sidebar.button("Обчислити рівень озеленення території"):
     st.session_state.update({"map_obj": None})
     tags = {group: [] for group in TAG_GROUPS}
-    try:
-        location = get_location(address)
-    except:
-        location = None
-        st.write('Геокодер недоступний. Перевірте підключення '
-                 'до мережі або спробуйте пізніше')
-    if location is not None:																																																																																																																									
-        map_obj = osmutils.create_map(location, address, radius)
-        territory = circle_area(location, radius)
+    success = True
+    location = None
+    if radius is not None:
+        try:
+            location = get_location(address)
+        except:
+            success = False
+            st.write('Геокодер недоступний. Перевірте підключення '
+                     'до мережі або спробуйте пізніше')
+    id success:
+        if location is not None:
+            territory = circle_area(location, radius)
+        else:
+            territory = osmutils.district_area(f"{address} район")
+            location = territory.geometry.union_all().centroid.coords[0][::-1]																																																																																																																									
         territory_area = get_area(territory)
-        osmutils.add_object(map_obj, territory)
+        map_obj = osmutils.create_map(location, address, radius)
+        osmutils.add_object(map_obj, territory) 
         for tag, selected in st.session_state.tags.items():
             osmutils.update_tags(tags, tag, selected)
         try:
