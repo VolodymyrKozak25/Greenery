@@ -48,8 +48,7 @@ for tag in st.session_state.tags:
 if st.sidebar.button("Обчислити рівень озеленення території"):
     st.session_state.update({"map_obj": None})
     tags = {group: [] for group in TAG_GROUPS}
-    success = True
-    location = None
+    success, location = True, None
     if radius is not None:
         try:
             location = get_location(address)
@@ -57,7 +56,7 @@ if st.sidebar.button("Обчислити рівень озеленення те�
             success = False
             st.write('Геокодер недоступний. Перевірте підключення '
                      'до мережі або спробуйте пізніше')
-    id success:
+    if success:
         if location is not None:
             territory = circle_area(location, radius)
         else:
