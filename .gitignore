@@ -1,0 +1,8 @@
+# Project cache folder
+cache/
+
+# Python cache folders
+__pycache__/
+
+# Virtual environment
+venv/
